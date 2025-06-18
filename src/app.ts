@@ -1,11 +1,11 @@
 import express, { Express } from "express";
 import { appConfig } from "./config/configuration";
-import helmet from "helmet";
-import { morganMiddleware } from "./utils/logger.util";
 import passport from "passport";
 import AuthController from "./controllers/auth.controller";
 import corsMiddlewareOptions from "./utils/cors.util";
 import cors from 'cors';
+import PictureRouterController from './controllers/routers/protected-router.controller'
+import { authenticateJWT } from "./utils/auth.middleware";
 
 export default class App {
   app?: Express;
@@ -17,18 +17,18 @@ export default class App {
     app.use(express.urlencoded({ extended: true }));
     app.use(passport.initialize());
     app.set("port", this.port);
-    app.use(morganMiddleware);
-    app.use(helmet());
     app.use(cors(corsMiddlewareOptions()));
     app.use(express.text());
     
+    // Router for authentication requests.
     app.use('/auth', AuthController.instance.router);
-    app.use(/^\/api\/(?!stream).*$/, AuthController.instance.isAuthenticated);
+    // Middleware for all the routers that starts with '/api'.
+    app.use(/^\/api\/(?!stream).*$/, authenticateJWT);
     
-    // app.use("/api", [
-    //     userRouterController.router,
-    //     certificateRouterController.router,
-    // ]);
+    // All the routers.
+    app.use("/api", [
+        PictureRouterController.router,
+    ]);
 
     this.app = app;
   }
